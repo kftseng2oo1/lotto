@@ -660,8 +660,8 @@ function detectColumns(h) {
   const m = { game:-1,draw:-1,date:-1,n1:-1,n2:-1,n3:-1,n4:-1,n5:-1,n6:-1,sp:-1 };
   h.forEach((t, i) => {
     t = t.trim();
-    if (t.includes('遊戲')) m.game = i;
-    else if (t === '期別' || t.includes('期號')) m.draw = i;
+    if (t === '遊戲名稱' || t === '遊戲') m.game = i;
+    else if (t === '期別' || t === '期號') m.draw = i;
     else if (t.includes('開獎日')) m.date = i;
     else if (t === '獎號1' || t === '號碼1') m.n1 = i;
     else if (t === '獎號2' || t === '號碼2') m.n2 = i;
@@ -669,36 +669,62 @@ function detectColumns(h) {
     else if (t === '獎號4' || t === '號碼4') m.n4 = i;
     else if (t === '獎號5' || t === '號碼5') m.n5 = i;
     else if (t === '獎號6' || t === '號碼6') m.n6 = i;
-    else if (t.includes('特別') || t.includes('第二區') || t.includes('二區')) m.sp = i;
+    else if (t === '特別號' || t === '第二區' || t.includes('二區')) m.sp = i;
   });
-  if (m.n1 < 0 && h.length >= 13) { m.game=0;m.draw=1;m.date=2;m.n1=6;m.n2=7;m.n3=8;m.n4=9;m.n5=10;m.n6=11;m.sp=12; }
+  // Only use positional fallback if game column (col 0) AND ball columns are present
+  // Official format: 遊戲名稱,期別,開獎日期,銷售總額,銷售注數,總獎金,獎號1..6,特別號
+  if (m.game < 0 && m.n1 < 0 && h.length >= 13) {
+    // Check col 0 of actual data would be game name — set positions but
+    // extractRow will enforce strict game name match, so this is safe
+    m.game=0; m.draw=1; m.date=2; m.n1=6; m.n2=7; m.n3=8; m.n4=9; m.n5=10; m.n6=11; m.sp=12;
+  }
   return m;
 }
 function extractRow(cols, cm, gt, maxN, maxSp, arr) {
   const gn = gt === 'lotto' ? '大樂透' : '威力彩';
-  if (cm && cm.game >= 0) { const g = (cols[cm.game]||'').trim(); if (g && g !== gn) return null; }
+
+  // STRICT game name check — must match exactly, empty = skip
+  if (cm && cm.game >= 0) {
+    const g = (cols[cm.game] || '').trim();
+    if (g !== gn) return null;   // ← reject empty, other games, headers
+  } else {
+    // No game column detected — reject entirely to avoid mixing other lottery data
+    return null;
+  }
+
   let nums = [], draw = '', date = '', sp = 0;
-  if (cm && cm.n1 >= 0) {
-    draw = (cols[cm.draw]||'').trim(); date = (cols[cm.date]||'').trim();
-    [cm.n1,cm.n2,cm.n3,cm.n4,cm.n5,cm.n6].forEach(idx => {
-      if (idx < 0) return; const n = parseInt(cols[idx]); if (n >= 1 && n <= maxN) nums.push(n);
+
+  if (cm.n1 >= 0) {
+    draw = (cols[cm.draw] || '').trim();
+    date = (cols[cm.date] || '').trim();
+    [cm.n1, cm.n2, cm.n3, cm.n4, cm.n5, cm.n6].forEach(idx => {
+      if (idx < 0) return;
+      const n = parseInt(cols[idx]);
+      if (n >= 1 && n <= maxN) nums.push(n);
     });
     sp = parseInt(cols[cm.sp]);
-  } else {
-    for (const c of cols) { const n = parseInt(c.trim()); if (n >= 1 && n <= maxN) nums.push(n); if (nums.length === 7) break; }
-    sp = nums[6]; nums = nums.slice(0, 6);
   }
+
   if (nums.length === 6 && sp >= 1 && sp <= maxSp)
     return { draw: draw || `期${arr.length+1}`, date, numbers: nums, special: sp };
   return null;
 }
+
+// parseNumbersOnly: DISABLED — too risky with mixed-game CSV files
+// Only used when there is NO header at all (rare manual input)
 function parseNumbersOnly(lines, gt, maxN, maxSp, arr) {
+  // Safety: only run if lines look like pure number data (no Chinese characters)
+  const hasChinese = lines.some(l => /[\u4e00-\u9fff]/.test(l));
+  if (hasChinese) return 0; // abort — mixed game CSV, don't guess
+
   let count = 0;
   for (const line of lines) {
     const p = line.split(/[,\t ]+/);
     const nums = p.map(x => parseInt(x)).filter(n => n >= 1 && n <= maxN);
-    const sp = parseInt(p.find(x => { const n = parseInt(x); return n >= 1 && n <= maxSp; }) || '0');
-    if (nums.length >= 6) { arr.push({draw:`期${arr.length+1}`,date:'',numbers:nums.slice(0,6),special:sp||0}); count++; }
+    if (nums.length === 7) {
+      arr.push({ draw: `期${arr.length+1}`, date: '', numbers: nums.slice(0,6), special: nums[6] });
+      count++;
+    }
   }
   return count;
 }
