@@ -1,44 +1,20 @@
-# My PWA App
+# 台灣彩券分析系統 v6
 
-> 一個 Progressive Web App
+大樂透、威力彩歷史資料分析：頻率、冷熱、奇偶、遺漏、連號、威力彩第二區，並產生推薦號碼與簽注單。
 
-## 📦 包含檔案
+**線上使用**：https://kftseng2oo1.github.io/lotto/
 
-- `icon-192.png`
-- `icon-512.png`
-- `manifest.json`
-- `sw.js`
-- `index.html`
-- `icon.svg`
-- `icon-maskable.svg`
-- `offline.html`
+## 主要功能
+- 資料來源：ZIP／CSV 匯入、官方下載連結、手動貼上，或載入示範資料
+- 分析：📈 頻率圖、❄️ 冷熱、⚖️ 奇偶、📉 遺漏、🔗 連號；威力彩另有 🟣 第二區分析
+- 🎯 推薦號碼、🎫 產生簽注單（可重新產生）
+- 匯出 Excel／CSV，或用分享選單傳出
+- 💾 資料可存在本機（超過容量時只保留最新 2000 期）
 
-## 🚀 部署到 GitHub Pages
+## 技術與依賴
+- 單檔 HTML PWA（`index.html` 內含全部 HTML/CSS/JS），`manifest.json` + `sw.js` 提供安裝到主畫面與離線快取。
+- SheetJS、JSZip（cdnjs）；官方資料來源 `taiwanlottery.com`
 
-```bash
-git init
-git add .
-git commit -m "init: My PWA App PWA"
-git branch -M main
-git remote add origin https://github.com/<username>/<repo>.git
-git push -u origin main
-```
-
-然後在 GitHub repo → **Settings → Pages** → Source 選 `main` 分支，等待幾分鐘後即可訪問。
-
-## 📱 安裝 PWA
-
-在支援的瀏覽器（Chrome / Edge / Safari iOS）中打開網頁，  
-點擊「**安裝**」或「**加入主畫面**」即可將此 App 安裝到裝置。
-
-## ⚙ 技術規格
-
-| 項目 | 值 |
-|------|-----|
-| display | standalone |
-| theme_color | #1a73e8 |
-| lang | zh-TW |
-| scope | /lotto/ |
-
----
-*由 [PWA 打包神器](https://github.com) 自動生成*
+## 備註
+- `manifest.json` 的名稱還是預設的「My PWA App」，安裝到主畫面會顯示這個名字，建議改成「台灣彩券分析」。
+- 彩券開獎是獨立隨機事件，分析結果僅供娛樂。
